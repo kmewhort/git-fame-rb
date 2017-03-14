@@ -185,22 +185,26 @@ module GitFame
         # -w ignore whitespaces (defined in @wopt)
         # -M detect moved or copied lines.
         # -p procelain mode (parsed by BlameParser)
-        execute("git #{git_directory_params} blame #{encoding_opt} -p -M #{default_params} #{commit_range.to_s} #{@wopt} -- '#{file}'") do |result|
-          BlameParser.new(result.to_s).parse.each do |row|
-            next if row[:boundary]
+        begin
+          execute("git #{git_directory_params} blame #{encoding_opt} -p -M #{default_params} #{commit_range.to_s} #{@wopt} -- '#{file}'") do |result|
+            BlameParser.new(result.to_s).parse.each do |row|
+              next if row[:boundary]
 
-            email = get(row, :author, :mail)
-            name = get(row, :author, :name)
+              email = get(row, :author, :mail)
+              name = get(row, :author, :name)
 
-            # Create or find user
-            author = author_by_email(email, name)
+              # Create or find user
+              author = author_by_email(email, name)
 
-            # Get author by name and increase the number of loc by 1
-            author.inc(:loc, get(row, :num_lines))
+              # Get author by name and increase the number of loc by 1
+              author.inc(:loc, get(row, :num_lines))
 
-            # Store the files and authors together
-            associate_file_with_author(author, file)
+              # Store the files and authors together
+              associate_file_with_author(author, file)
+            end
           end
+        rescue Timeout::Error
+          # no-op (skip file)
         end
       end
 
